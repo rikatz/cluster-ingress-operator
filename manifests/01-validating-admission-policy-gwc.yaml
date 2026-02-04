@@ -1,0 +1,46 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: openshift-ingress-operator-gatewayclass
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: GatewayClass
+  matchConstraints:
+    # Consider only requests to GatewayClass
+    resourceRules:
+    - apiGroups:   ["gateway.networking.k8s.io"]
+      apiVersions: ["v1"]
+      operations:  ["CREATE","DELETE"] # We don't need to care about update because controllerName is immutable
+      resources:   ["gatewayclasses"]
+  validations:
+    - expression: "request.operation != 'CREATE' || object.spec.controllerName != 'openshift.io/gateway-controller/withdraw-gateway-api' || object.metadata.name == 'openshift-withdraw-gateway-api'"
+      message: "Creation of withdraw class is only allowed if the class is named 'openshift-withdraw-gateway-api'."
+    - expression: >
+        request.operation == 'DELETE'
+        ? oldObject.spec.controllerName != 'openshift.io/gateway-controller/withdraw-gateway-api'
+        : true
+      message: "Deletion of the withdraw GatewayClass is forbidden"
+    - expression: >
+        request.operation == 'CREATE'
+        ? params.spec.controllerName != 'openshift.io/gateway-controller/v1' || object.spec.controllerName != 'openshift.io/gateway-controller/withdraw-gateway-api'
+        : true
+      message: "The creation of withdraw class cannot happen in case a managed class exists"
+    - expression: >
+        request.operation == 'CREATE'
+        ? params.spec.controllerName != 'openshift.io/gateway-controller/withdraw-gateway-api' || object.spec.controllerName != 'openshift.io/gateway-controller/v1'
+        : true
+      message: "The creation of a managed class cannot happen in case a withdraw class exists"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: openshift-ingress-operator-gatewayclass
+spec:
+  policyName: openshift-ingress-operator-gatewayclass
+  validationActions: [Deny]
+  paramRef:
+    selector: 
+      matchLabels: {}
+    parameterNotFoundAction: Allow
