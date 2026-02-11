@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 	"strconv"
 	"strings"
@@ -426,9 +427,7 @@ func desiredLoadBalancerService(ci *operatorv1.IngressController, deploymentRef 
 	if platform != nil {
 		if isInternal {
 			annotation := InternalLBAnnotations[platform.Type]
-			for name, value := range annotation {
-				service.Annotations[name] = value
-			}
+			maps.Copy(service.Annotations, annotation)
 
 			// Set the GCP Global Access annotation for internal load balancers on GCP only
 			if platform.Type == configv1.GCPPlatformType {
@@ -441,9 +440,7 @@ func desiredLoadBalancerService(ci *operatorv1.IngressController, deploymentRef 
 			}
 		} else {
 			annotation := externalLBAnnotations[platform.Type]
-			for name, value := range annotation {
-				service.Annotations[name] = value
-			}
+			maps.Copy(service.Annotations, annotation)
 		}
 		switch platform.Type {
 		case configv1.AWSPlatformType:
@@ -1231,23 +1228,23 @@ func JoinAWSSubnets(subnets *operatorv1.AWSSubnets, sep string) string {
 	if subnets == nil {
 		return ""
 	}
-	joinedSubnets := ""
+	var joinedSubnets strings.Builder
 	subnetCount := 0
 	for _, subnet := range subnets.IDs {
 		if subnetCount > 0 {
-			joinedSubnets += sep
+			joinedSubnets.WriteString(sep)
 		}
-		joinedSubnets += string(subnet)
+		joinedSubnets.WriteString(string(subnet))
 		subnetCount++
 	}
 	for _, subnet := range subnets.Names {
 		if subnetCount > 0 {
-			joinedSubnets += sep
+			joinedSubnets.WriteString(sep)
 		}
-		joinedSubnets += string(subnet)
+		joinedSubnets.WriteString(string(subnet))
 		subnetCount++
 	}
-	return joinedSubnets
+	return joinedSubnets.String()
 }
 
 // JoinAWSEIPAllocations joins an AWS EIPAllocations object into a string seperated by sep.

@@ -1634,7 +1634,7 @@ func (r *reconciler) updateRouterDeployment(current, desired *appsv1.Deployment)
 // ensuring the hash does not change when a pointer changes.
 //
 // Copied from github.com/kubernetes/kubernetes/pkg/util/hash/hash.go.
-func deepHashObject(hasher hash.Hash, objectToWrite interface{}) {
+func deepHashObject(hasher hash.Hash, objectToWrite any) {
 	hasher.Reset()
 	printer := spew.ConfigState{
 		Indent:         " ",

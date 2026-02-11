@@ -106,7 +106,7 @@ func (p *Provider) Delete(record *iov1.DNSRecord, zone configv1.DNSZone) error {
 		if resourceRecord.ID == nil {
 			return fmt.Errorf("delete: record id is nil")
 		}
-		rData, ok := resourceRecord.Rdata.(map[string]interface{})
+		rData, ok := resourceRecord.Rdata.(map[string]any)
 		if !ok {
 			return fmt.Errorf("delete: failed to get resource data: %v", resourceRecord.Rdata)
 		}

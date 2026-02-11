@@ -52,7 +52,7 @@ func Test_Delete(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testDelete"),
 						Name:  pointer.String("testDelete"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -75,7 +75,7 @@ func Test_Delete(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testDelete"),
 						Name:  pointer.String("testDelete"),
-						Rdata: map[string]interface{}{"cname": "example.com"},
+						Rdata: map[string]any{"cname": "example.com"},
 						Type:  pointer.String(string(iov1.CNAMERecordType)),
 					}},
 				},
@@ -118,7 +118,7 @@ func Test_Delete(t *testing.T) {
 				OutputResult: &dnssvcsv1.ListResourceRecords{
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						Name:  pointer.String("testList"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -137,7 +137,7 @@ func Test_Delete(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testDelete"),
 						Name:  pointer.String("testDelete"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -160,7 +160,7 @@ func Test_Delete(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testDelete"),
 						Name:  pointer.String("testDelete"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -183,7 +183,7 @@ func Test_Delete(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testDelete"),
 						Name:  pointer.String("testDelete"),
-						Rdata: map[string]interface{}{"ip": "22.33.44.55"},
+						Rdata: map[string]any{"ip": "22.33.44.55"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -200,7 +200,7 @@ func Test_Delete(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testDelete"),
 						Name:  pointer.String("testDelete"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 					}},
 				},
 			},
@@ -313,7 +313,7 @@ func Test_createOrUpdateDNSRecord(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testUpdate"),
 						Name:  pointer.String("testUpdate"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -336,7 +336,7 @@ func Test_createOrUpdateDNSRecord(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testUpdate"),
 						Name:  pointer.String("testUpdate"),
-						Rdata: map[string]interface{}{"cname": "example.com"},
+						Rdata: map[string]any{"cname": "example.com"},
 						Type:  pointer.String(string(iov1.CNAMERecordType)),
 					}},
 				},
@@ -385,7 +385,7 @@ func Test_createOrUpdateDNSRecord(t *testing.T) {
 				OutputResult: &dnssvcsv1.ListResourceRecords{
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						Name:  pointer.String("testList"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -404,7 +404,7 @@ func Test_createOrUpdateDNSRecord(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testUpdate"),
 						Name:  pointer.String("testUpdate"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 						Type:  pointer.String(string(iov1.ARecordType)),
 					}},
 				},
@@ -459,7 +459,7 @@ func Test_createOrUpdateDNSRecord(t *testing.T) {
 					ResourceRecords: []dnssvcsv1.ResourceRecord{{
 						ID:    pointer.String("testList"),
 						Name:  pointer.String("testList"),
-						Rdata: map[string]interface{}{"ip": "11.22.33.44"},
+						Rdata: map[string]any{"ip": "11.22.33.44"},
 					}},
 				},
 			},

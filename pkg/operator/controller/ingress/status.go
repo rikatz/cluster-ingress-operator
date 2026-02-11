@@ -201,8 +201,8 @@ func computeAllowedSourceRanges(service *corev1.Service) []operatorv1.CIDR {
 	if a, ok := service.Annotations[corev1.AnnotationLoadBalancerSourceRangesKey]; ok {
 		a = strings.TrimSpace(a)
 		if len(a) > 0 {
-			sourceRanges := strings.Split(a, ",")
-			for _, r := range sourceRanges {
+			sourceRanges := strings.SplitSeq(a, ",")
+			for r := range sourceRanges {
 				cidrs = append(cidrs, operatorv1.CIDR(r))
 			}
 			return cidrs

@@ -3,6 +3,7 @@ package gatewayclass
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 
 	logf "github.com/openshift/cluster-ingress-operator/pkg/log"
@@ -115,10 +116,8 @@ func NewUnmanaged(mgr manager.Manager, config Config) (controller.Controller, er
 	isOurInstallPlan := predicate.NewPredicateFuncs(func(o client.Object) bool {
 		installPlan := o.(*operatorsv1alpha1.InstallPlan)
 		if len(installPlan.Spec.ClusterServiceVersionNames) > 0 {
-			for _, csv := range installPlan.Spec.ClusterServiceVersionNames {
-				if csv == config.GatewayAPIOperatorVersion {
-					return true
-				}
+			if slices.Contains(installPlan.Spec.ClusterServiceVersionNames, config.GatewayAPIOperatorVersion) {
+				return true
 			}
 		}
 		return false

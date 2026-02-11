@@ -3,6 +3,7 @@ package gatewayapi
 import (
 	"context"
 	"fmt"
+	"maps"
 	"sort"
 
 	"github.com/google/go-cmp/cmp"
@@ -179,9 +180,7 @@ func crdChanged(current, expected *apiextensionsv1.CustomResourceDefinition) (bo
 	if updated.ObjectMeta.Annotations == nil {
 		updated.ObjectMeta.Annotations = make(map[string]string)
 	}
-	for k, v := range expected.Annotations {
-		updated.ObjectMeta.Annotations[k] = v
-	}
+	maps.Copy(updated.ObjectMeta.Annotations, expected.Annotations)
 
 	// Preserve fields that the API, other controllers, or user may have
 	// modified.  Note: This list must be kept consistent with crdCmpOpts

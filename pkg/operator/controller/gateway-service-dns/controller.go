@@ -3,6 +3,7 @@ package gateway_service_dns
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"strings"
 
@@ -238,9 +239,7 @@ func (r *reconciler) ensureDNSRecordsForGateway(ctx context.Context, gateway *ga
 	labels := map[string]string{
 		gatewayNameLabelKey: gateway.Name,
 	}
-	for k, v := range service.Labels {
-		labels[k] = v
-	}
+	maps.Copy(labels, service.Labels)
 	ownerRef := metav1.OwnerReference{
 		APIVersion: corev1.SchemeGroupVersion.String(),
 		Kind:       "Service",

@@ -56,19 +56,19 @@ func (r *reconciler) ensureServiceMonitor(ic *operatorv1.IngressController, svc 
 func desiredServiceMonitor(ic *operatorv1.IngressController, svc *corev1.Service, deploymentRef metav1.OwnerReference) *unstructured.Unstructured {
 	name := controller.IngressControllerServiceMonitorName(ic)
 	sm := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"metadata": map[string]interface{}{
+		Object: map[string]any{
+			"metadata": map[string]any{
 				"namespace": name.Namespace,
 				"name":      name.Name,
 			},
-			"spec": map[string]interface{}{
-				"namespaceSelector": map[string]interface{}{
-					"matchNames": []interface{}{
+			"spec": map[string]any{
+				"namespaceSelector": map[string]any{
+					"matchNames": []any{
 						operatorcontroller.DefaultOperandNamespace,
 					},
 				},
-				"selector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
+				"selector": map[string]any{
+					"matchLabels": map[string]any{
 						manifests.OwningIngressControllerLabel: ic.Name,
 					},
 				},
@@ -81,14 +81,14 @@ func desiredServiceMonitor(ic *operatorv1.IngressController, svc *corev1.Service
 				// type []interface{} for this field, so
 				// DeepEqual against an API object will always
 				// return false.
-				"endpoints": []interface{}{
-					map[string]interface{}{
+				"endpoints": []any{
+					map[string]any{
 						"bearerTokenFile": "/var/run/secrets/kubernetes.io/serviceaccount/token",
 						"interval":        "30s",
 						"port":            "metrics",
 						"scheme":          "https",
 						"path":            "/metrics",
-						"tlsConfig": map[string]interface{}{
+						"tlsConfig": map[string]any{
 							"caFile":     "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
 							"serverName": fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),
 						},
