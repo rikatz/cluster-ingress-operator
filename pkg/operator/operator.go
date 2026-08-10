@@ -139,6 +139,7 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 	}
 	azureWorkloadIdentityEnabled := featureGates.Enabled(features.FeatureGateAzureWorkloadIdentity)
 	gatewayAPIWithoutOLMEnabled := featureGates.Enabled(features.FeatureGateGatewayAPIWithoutOLM)
+	gatewayAPIManagementModeEnabled := featureGates.Enabled(features.FeatureGateGatewayAPIManagementMode)
 	ingressControllerDCMEnabled := featureGates.Enabled(features.FeatureGateIngressControllerDynamicConfigurationManager)
 	featureMultiHAProxyEnabled := featureGates.Enabled(features.FeatureGateIngressControllerMultipleHAProxyVersions)
 
@@ -231,6 +232,11 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 		return nil, fmt.Errorf("failed to create configurable-route controller: %v", err)
 	}
 
+	// Create the shared mode accessor early so the status controller
+	// can read transition state for ClusterOperator conditions. The
+	// gatewayapi controller is the sole writer.
+	modeAccessor := gatewayapicontroller.NewModeAccessor(gatewayAPIManagementModeEnabled)
+
 	// Set up the status controller.
 	if _, err := statuscontroller.New(mgr, statuscontroller.Config{
 		Namespace:                       config.Namespace,
@@ -243,6 +249,7 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 		OperatorLifecycleManagerEnabled: olmEnabled,
 		GatewayAPIWithoutOLMEnabled:     gatewayAPIWithoutOLMEnabled,
 		GatewayAPIOperatorVersion:       config.GatewayAPIOperatorVersion,
+		ModeAccessor:                    modeAccessor,
 	}); err != nil {
 		return nil, fmt.Errorf("failed to create status controller: %v", err)
 	}
@@ -339,7 +346,7 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 		Context:                         ctx,
 	}
 
-	gatewayClassController, err := gatewayclasscontroller.NewUnmanaged(mgr, gatewayclassControllerConfig)
+	gatewayClassController, sailUninstaller, err := gatewayclasscontroller.NewUnmanaged(mgr, gatewayclassControllerConfig, modeAccessor)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gatewayclass controller: %w", err)
 	}
@@ -349,29 +356,29 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 	// Gateway API CRDs.
 	gatewayServiceDNSController, err := gatewayservicednscontroller.NewUnmanaged(mgr, gatewayservicednscontroller.Config{
 		OperandNamespace: operatorcontroller.DefaultOperandNamespace,
-	})
+	}, modeAccessor)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway-service-dns controller: %v", err)
 	}
 
 	// Set up the gateway-labeler controller.
-	gatewayLabelController, err := gatewaylabelercontroller.NewUnmanaged(mgr)
+	gatewayLabelController, err := gatewaylabelercontroller.NewUnmanaged(mgr, modeAccessor)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway-labeler controller: %w", err)
 	}
 
 	// Set up the gateway-status controller.
-	gatewayStatusController, err := gatewaystatuscontroller.NewUnmanaged(mgr)
+	gatewayStatusController, err := gatewaystatuscontroller.NewUnmanaged(mgr, modeAccessor)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway-status controller: %w", err)
 	}
 
-	gatewayNetworkPolicyController, err := gatewaynetworkpolicycontroller.NewUnmanaged(mgr)
+	gatewayNetworkPolicyController, err := gatewaynetworkpolicycontroller.NewUnmanaged(mgr, modeAccessor)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gateway-networkpolicy controller: %w", err)
 	}
 
-	listenerSetStatusController, err := listenersetstatuscontroller.NewUnmanaged(mgr)
+	listenerSetStatusController, err := listenersetstatuscontroller.NewUnmanaged(mgr, modeAccessor)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create listenerset-status controller: %w", err)
 	}
@@ -381,6 +388,9 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 		MarketplaceEnabled:              marketplaceEnabled,
 		OperatorLifecycleManagerEnabled: olmEnabled,
 		GatewayAPIWithoutOLMEnabled:     gatewayAPIWithoutOLMEnabled,
+		OSSMVersion:                     config.GatewayAPIOperatorVersion,
+		ModeAccessor:                    modeAccessor,
+		SailUninstaller:                 sailUninstaller,
 		DependentControllers: []controller.Controller{
 			gatewayClassController,
 			gatewayServiceDNSController,
