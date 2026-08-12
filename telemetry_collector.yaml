@@ -1,0 +1,63 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+  namespace: openshift-opentelemetry-operator
+spec:
+  config:
+    exporters:
+      file/stdout:
+        format: json
+        path: /dev/stdout
+    processors:
+      batch: {}
+      filter/waf:
+        error_mode: ignore
+        logs:
+          log_record:
+          - attributes["coraza_waf"] == "-"
+          - attributes["coraza_waf"] == nil
+          - attributes["coraza_waf"] == ""
+          - not IsMatch(String(attributes["coraza_waf"]), "coraza_waf_blocked_request")
+      transform/waf_only:
+        error_mode: ignore
+        log_statements:
+        - context: log
+          statements:
+          - set(cache["waf"], ParseJSON(String(attributes["coraza_waf"])))
+          - set(body, cache["waf"])
+          - set(attributes, cache["waf"])
+        - context: resource
+          statements:
+          - set(attributes, {})
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+    service:
+      pipelines:
+        logs:
+          exporters:
+          - file/stdout
+          processors:
+          - filter/waf
+          - transform/waf_only
+          - batch
+          receivers:
+          - otlp
+      telemetry:
+        logs:
+          encoding: json
+        metrics:
+          readers:
+          - pull:
+              exporter:
+                prometheus:
+                  host: 0.0.0.0
+                  port: 8888
+                  without_scope_info: false
+                  without_type_suffix: false
+                  without_units: false

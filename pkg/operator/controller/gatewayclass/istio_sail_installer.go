@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 
 	sailv1 "github.com/istio-ecosystem/sail-operator/api/v1"
@@ -180,6 +182,25 @@ func (r *reconciler) buildInstallerOptions(enableInferenceExtension bool, istioV
 func openshiftValues(enableInferenceExtension bool, operandNamespace string, gatewayclasses []gatewayapiv1.GatewayClass, extraConfig *extraIstioConfig) (*sailv1.Values, error) {
 	pilotEnv := gatewayAPIPilotEnv(enableInferenceExtension)
 
+	const (
+		wafOtelCollectorAnnotation = "unsupported.openshift.io/gw-waf-collector"
+	)
+
+	var wafCollectorHost string
+	var wafCollectorPort int
+	for _, gc := range gatewayclasses {
+		// This is very ugly, I know and it is just a test
+		if val, ok := gc.Annotations[wafOtelCollectorAnnotation]; ok && gc.Name == "openshift-default" {
+			host, port, err := net.SplitHostPort(val)
+			if err == nil {
+				wafCollectorPort, err = strconv.Atoi(port)
+				if err == nil {
+					wafCollectorHost = host
+				}
+			}
+		}
+	}
+
 	val := &sailv1.Values{
 		Global: &sailv1.GlobalConfig{
 			DefaultPodDisruptionBudget: &sailv1.DefaultPodDisruptionBudgetConfig{
@@ -201,6 +222,29 @@ func openshiftValues(enableInferenceExtension bool, operandNamespace string, gat
 		MeshConfig: &sailv1.MeshConfig{
 			DefaultConfig: &sailv1.MeshConfigProxyConfig{},
 		},
+	}
+
+	if wafCollectorHost != "" && wafCollectorPort > 0 {
+		val.MeshConfig.ExtensionProviders = []*sailv1.MeshConfigExtensionProvider{
+			{
+				Name: ptr.To("waf"),
+				EnvoyOtelAls: &sailv1.MeshConfigExtensionProviderEnvoyOpenTelemetryLogProvider{
+					Service: ptr.To(wafCollectorHost), // Or headless, should define
+					Port:    ptr.To(uint32(wafCollectorPort)),
+					// Define later if we really need it, or if OTEL can do parsing on its side
+					LogFormat: &sailv1.MeshConfigExtensionProviderEnvoyOpenTelemetryLogProviderLogFormat{
+						Labels: map[string]string{
+							"coraza_waf":    "%FILTER_STATE(wasm.io.coraza.waf.data:PLAIN)%",
+							"method":        "%REQ(:METHOD)%",
+							"path":          "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+							"response_code": "%RESPONSE_CODE%",
+							"route_name":    "%ROUTE_NAME%",
+							"authority":     "%REQ(:AUTHORITY)%",
+						},
+					},
+				},
+			},
+		}
 	}
 
 	if extraConfig != nil {
