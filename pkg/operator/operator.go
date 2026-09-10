@@ -15,6 +15,7 @@ import (
 	errorpageconfigmapcontroller "github.com/openshift/cluster-ingress-operator/pkg/operator/controller/sync-http-error-code-configmap"
 	"github.com/openshift/library-go/pkg/operator/onepodpernodeccontroller"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/clock"
@@ -65,6 +66,10 @@ import (
 
 var (
 	log = logf.Logger.WithName("init")
+)
+
+const (
+	ingressOperatorCRDName = "ingresses.operator.openshift.io"
 )
 
 func init() {
@@ -235,7 +240,19 @@ func New(config operatorconfig.Config, kubeConfig *rest.Config) (*Operator, erro
 	// Create the shared mode accessor early so the status controller
 	// can read transition state for ClusterOperator conditions. The
 	// gatewayapi controller is the sole writer.
-	modeAccessor := operatorcontroller.NewGatewayAPIModeAccessor(gatewayAPIManagementModeEnabled)
+	// Verify if the CRD is already present as well, otherwise do not start the feature gate management.
+	// This is necessary for promotion, and can be removed after it.
+	apiExtClient, err := apiextensionsclient.NewForConfig(kubeConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create the CRD client: %w", err)
+	}
+	ingressCRDExists, err := CRDExists(ctx, apiExtClient, ingressOperatorCRDName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to verify if CRD %s exists: %w", ingressOperatorCRDName, err)
+	}
+	enableGatewayAPIManagementMode := gatewayAPIManagementModeEnabled && ingressCRDExists
+
+	modeAccessor := operatorcontroller.NewGatewayAPIModeAccessor(enableGatewayAPIManagementMode)
 
 	// Set up the status controller.
 	if _, err := statuscontroller.New(mgr, statuscontroller.Config{
@@ -579,4 +596,19 @@ func (o *Operator) ensureDefaultIngressController(infraConfig *configv1.Infrastr
 	}
 	log.Info("created default ingresscontroller", "namespace", ic.Namespace, "name", ic.Name)
 	return nil
+}
+
+// CRDExists returns a Boolean value indicating whether the named CRD exists.
+func CRDExists(ctx context.Context, client *apiextensionsclient.Clientset, crdName string) (bool, error) {
+	if client == nil {
+		return false, fmt.Errorf("crd client cannot be null")
+	}
+
+	if _, err := client.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, crdName, metav1.GetOptions{}); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to get CRD %s: %w", crdName, err)
+	}
+	return true, nil
 }
