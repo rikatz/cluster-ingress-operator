@@ -117,6 +117,11 @@ func TestGatewayAPI(t *testing.T) {
 		t.Fatalf("error checking GatewayAPIManagementMode feature gate enabled status: %v", err)
 	}
 
+	ingressesAPIExists, err := crdExists(t, apiExtensionClient, "ingresses.operator.openshift.io")
+	if err != nil {
+		t.Fatalf("error verifying if ManagementMode CRD exists: %v", err)
+	}
+
 	// Defer the cleanup of the test gateway.
 	t.Cleanup(func() {
 		testGateway := gatewayapiv1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: testGatewayName, Namespace: operatorcontroller.DefaultOperandNamespace}}
@@ -154,7 +159,7 @@ func TestGatewayAPI(t *testing.T) {
 	}
 	t.Run("testGatewayOpenshiftConditions", testGatewayOpenshiftConditions)
 	t.Run("testListenerSetNotAccepted", testListenerSetNotAccepted)
-	if gatewayAPIManagementModeEnabled {
+	if gatewayAPIManagementModeEnabled && ingressesAPIExists {
 		t.Run("testGatewayAPIManagementModeDefault", testGatewayAPIManagementModeDefault)
 		t.Run("testGatewayAPIManagementModeMetrics", testGatewayAPIManagementModeMetrics)
 		t.Run("testGatewayAPIManagementModeCRDCompliance", testGatewayAPIManagementModeCRDCompliance)
